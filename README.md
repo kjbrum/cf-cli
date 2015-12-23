@@ -40,7 +40,7 @@ Commands:
 
 #### CLOUDFLARE_EMAIL
 
-You CloudFlare account email.
+Your CloudFlare account email.
 
 #### CLOUDFLARE_API_KEY
 
