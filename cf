@@ -71,28 +71,18 @@ cf_get_zone() {
 
 # CLEANUP: Remove all the config files
 cf_cleanup() {
-    if [ "$2" ]; then
-        if [ -f "$CLOUDFLARE_DIR/$2" ]; then
-            success "==> Cleanup $2${WHITE}"
-            rm "$CLOUDFLARE_DIR/$2"
-            warn "Removed \"$2\" config file"
-        else
-            warn "A config file for \"$2\" doesn't exist"
-        fi
-    else
-        printf "This will remove all configuration files.\n"
-        read -ep "Are you sure you want to run the cleanup? (y/N): " cleanup
-        case $cleanup in
-            [Yy]* )
-                success "==> Cleanup${WHITE}"
-                warn "Config files removed"
-                rm -rf $CLOUDFLARE_DIR
-                ;;
-            * )
-                warn "Cleanup skipped"
-                ;;
-        esac
-    fi
+    printf "This will remove all configuration files.\n"
+    read -ep "Are you sure you want to run the cleanup? (y/N): " cleanup
+    case $cleanup in
+        [Yy]* )
+            success "==> Cleanup"
+            warn "Config files removed"
+            rm -rf $CLOUDFLARE_DIR
+            ;;
+        * )
+            warn "Cleanup skipped"
+            ;;
+    esac
 }
 
 # CLEAR CACHE: Clear the specified domain's cache
