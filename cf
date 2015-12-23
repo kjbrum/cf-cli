@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+
+
+
+#  CloudFlare CLI - v0.0.1
+#  A command line tool for communicating with the CloudFlare API.
+#  Copyright (C) Kyle Brumm <http://kylebrumm.com>
+
+
+
+# -------------------------------------------------------
+# CLOUDFLARE VARIABLES
+# -------------------------------------------------------
+
+VERSION="0.0.1"
+RED=$(tput setaf 1);
+GREEN=$(tput setaf 2);
+YELLOW=$(tput setaf 3);
+WHITE=$(tput setaf 7);
+RESET=$(tput sgr0);
+
+CLOUDFLARE_INSTALL_PATH="${BASH_SOURCE[0]}"
+CLOUDFLARE_INSTALL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CLOUDFLARE_DIR="$HOME/.cf"
+CLOUDFLARE_CONFIG="$CLOUDFLARE_DIR/config"
+
+
+
+# -------------------------------------------------------
+# CLOUDFLARE HELPER FUNCTIONS
+# -------------------------------------------------------
+
+# Throw an error
+error() {
+    printf "${RED}Error:${WHITE} ${1}\n"
+    exit
+}
+
+# Throw a warning
+warn() {
+    printf "${YELLOW}${1}${WHITE}\n"
+}
+
+# Throw a success message
+success() {
+    printf "${GREEN}${1}${WHITE}\n"
+}
+
+# Set up the necessary config variables
+setup_project_config() {
+    # Source the project config file if it exists
+    if [ -f "$CLOUDFLARE_DIR/$1" ]; then
+        source "$CLOUDFLARE_DIR/$1"
+    fi
+}
+
+cf_get_zone() {
+    zone=$(curl -sX GET "https://api.cloudflare.com/client/v4/zones?name=$1" -H "X-Auth-Email: $CLOUDFLARE_EMAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json")
+    count=$(echo "$zone" | jsawk 'return this.result_info.count')
+
+    if [ "$count" -gt 0 ]; then
+        echo "$zone" | jsawk 'return this.result[0].id'
+    fi
+}
+
+
+
+# -------------------------------------------------------
+# CLOUDFLARE COMMANDS
+# -------------------------------------------------------
+
+# CLEANUP: Remove all the config files
+cf_cleanup() {
+    if [ "$2" ]; then
+        if [ -f "$CLOUDFLARE_DIR/$2" ]; then
+            success "==> Cleanup $2${WHITE}"
+            rm "$CLOUDFLARE_DIR/$2"
+            warn "Removed \"$2\" config file"
+        else
+            warn "A config file for \"$2\" doesn't exist"
+        fi
+    else
+        printf "This will remove all configuration files.\n"
+        read -ep "Are you sure you want to run the cleanup? (y/N): " cleanup
+        case $cleanup in
+            [Yy]* )
+                success "==> Cleanup${WHITE}"
+                warn "Config files removed"
+                rm -rf $CLOUDFLARE_DIR
+                ;;
+            * )
+                warn "Cleanup skipped"
+                ;;
+        esac
+    fi
+}
+
+# CLEAR CACHE: Clear the specified domain's cache
+cf_clear_cache() {
+    if [ -z "$2" ]; then
+        error "You need to supply a domain."
+    else
+        # Get the zone ID
+        zone_id=$(cf_get_zone "$2")
+
+        # Check if we found a zone to match the domain
+        if [ -z "$zone_id" ]; then
+            error "There are no matches for the domain \"$2\"."
+        else
+            success "==> Clear Cache"
+            result=$(curl -sX DELETE "https://api.cloudflare.com/client/v4/zones/$zone_id/purge_cache" -H "X-Auth-Email: $CLOUDFLARE_EMAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json" --data '{"purge_everything":true}')
+            success_status=$(echo "$result" | jsawk 'return this.success')
+
+            if [ "$success_status" == "true" ]; then
+                warn "Cache has been cleared for \"$2\"."
+            else
+                errors=$(echo "$result" | jsawk 'return this.errors' | jsawk -n 'out(this.message)')
+                error "\n$errors"
+            fi
+        fi
+    fi
+}
+
+# HELP: Display the help information
+cf_help() {
+cat <<EOF
+
+CloudFlare CLI - v${VERSION}
+
+A command line tool for communicating with the CloudFlare API.
+
+Usage:
+    cf <task> <options>
+
+Commands:
+    clear-cache
+        <domain>    The domain of which to clear the cache
+    list            List all of the available domains
+
+EOF
+exit;
+}
+
+# INIT: Set up the project files
+cf_init() {
+    if [ $is_setup = true ]; then
+        error "You have already run the setup task."
+    fi
+
+    success "==> Init${WHITE}"
+
+    # Create directory if it doesn't exist
+    if [ ! -d "$CLOUDFLARE_DIR" ]; then
+        mkdir $CLOUDFLARE_DIR
+        success "Directory created"
+    fi
+
+    # Create config file if it doesn't exist
+    if [ ! -f "$CLOUDFLARE_CONFIG" ]; then
+        read -ep "CLOUDFLARE_EMAIL: " email
+        read -ep "CLOUDFLARE_API_KEY: " api_key
+
+        # Verify the users input
+        printf "\n"
+        printf "The following will be written to $CLOUDFLARE_CONFIG:\n"
+        printf "\n"
+        printf "# CloudFlare Email\n"
+        printf "CLOUDFLARE_EMAIL=\"$email\"\n"
+        printf "\n"
+        printf "# CloudFlare API Key\n"
+        printf "CLOUDFLARE_API_KEY=\"$api_key\"\n"
+        printf "\n"
+
+        # Confirm
+        read -ep "Everything look good? (Y/n): " good_to_go
+        case $good_to_go in
+            [Nn]* )
+                warn "Config setup skipped"
+                ;;
+            * )
+                success "Config file created"
+                touch $CLOUDFLARE_CONFIG
+cat > $CLOUDFLARE_CONFIG <<EOF
+# CloudFlare Email
+CLOUDFLARE_EMAIL="$email"
+
+# CloudFlare API Key
+CLOUDFLARE_API_KEY="$api_key"
+EOF
+                warn "\nThe config file can be modified at \"$CLOUDFLARE_CONFIG\""
+                ;;
+        esac
+    fi
+
+}
+
+# UPDATE: Update to the latest version of cf-cli
+cf_update() {
+    read -ep "Are you sure you want to update cf-cli? (y/N): " update
+    case $update in
+        [Yy]* )
+            success "==> Update"
+            # Remove the old script
+            warn "Removing old script at \"$CLOUDFLARE_INSTALL_PATH\"..."
+            rm $CLOUDFLARE_INSTALL_PATH
+
+            # Download the new script
+            warn "Downloading new script to \"$CLOUDFLARE_INSTALL_DIR/cf\"..."
+            curl -s https://raw.githubusercontent.com/kjbrum/cf-cli/master/cf-cli > $CLOUDFLARE_INSTALL_DIR/cf
+            chmod +x $CLOUDFLARE_INSTALL_DIR/cf
+            ;;
+        * )
+            warn "Update Skipped"
+            ;;
+    esac
+}
+
+# VERSION: Display the current version
+cf_version() {
+    printf "v$VERSION\n"
+}
+
+
+
+# -------------------------------------------------------
+# CLOUDFLARE INITIALIZATION
+# -------------------------------------------------------
+
+# Check if help info should be displayed
+if [ "$1" = "-h" -o "$1" = "--help" -o -z "$1" ]; then
+    cf_help;
+fi
+
+# Check if the necessary files are set up
+if [ -f "$CLOUDFLARE_CONFIG" ]; then
+    is_setup=true
+
+    # Source the config file
+    source "$CLOUDFLARE_CONFIG"
+else
+    is_setup=false
+
+    if [ "$1" != "init" -a "$1" != "version" ]; then
+        error "You need to run \"cf init\" to get things set up."
+    fi
+fi
+
+# See what command we need to run
+case "$1" in
+    cleanup)      cf_cleanup "$@";;
+    clear-cache)  cf_clear_cache "$@";;
+    init)         cf_init "$@";;
+    update)       cf_update;;
+    version)      cf_version;;
+    *)            error "Illegal command -- $1 (see \"cf --help\" for help)";;
+esac
