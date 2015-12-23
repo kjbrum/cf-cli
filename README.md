@@ -31,6 +31,7 @@ Commands:
         <domain>    The domain of which to clear the cache
     help            Display this help text
     init            Initialize necessary config files
+    list            List all the available domains
     update          Download the latest version of cf
     version         Display the current version
 ```
@@ -49,8 +50,6 @@ The API key associated with your account email. [Find it here](https://www.cloud
 
 ## To-Do
 
-- Add additional commands
-    - `list` - display all the available domains
 - Remove `jsawk` as a dependency
 
 

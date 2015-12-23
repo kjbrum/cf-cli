@@ -128,6 +128,7 @@ Commands:
         <domain>    The domain of which to clear the cache
     help            Display this help text
     init            Initialize necessary config files
+    list            List all the available domains
     update          Download the latest version of cf
     version         Display the current version
 
@@ -188,6 +189,44 @@ EOF
 
 }
 
+# LIST: List all the available domains
+cf_list() {
+    success "==> List"
+
+    looping="true"
+    domains=()
+    p=1
+    while [ "$looping" == "true" ]; do
+        result=$(curl -sX GET "https://api.cloudflare.com/client/v4/zones?page=$p&per_page=50" -H "X-Auth-Email: $CLOUDFLARE_EMAIL" -H "X-Auth-Key: $CLOUDFLARE_API_KEY" -H "Content-Type: application/json")
+        pages=$(echo "$result" | jsawk 'return this.result_info.total_pages')
+        new_domains=$(echo "$result" | jsawk 'return this.result' | jsawk 'return this.name')
+
+        new_domains=${new_domains//[}
+        new_domains=${new_domains//]}
+        new_domains=${new_domains//\"/}
+        new_domains=${new_domains//,/ }
+
+        # Combine the arrays
+        domains=(${domains[@]} ${new_domains[@]})
+
+        # Check if we have went through all the pages
+        if [ "$p" == "$pages" ]; then
+            break
+        fi
+
+        # Increment the page number
+        p=$(($p+1))
+    done
+
+    # Print the domains
+    x=0
+    while [ "$x" -lt ${#domains[@]} ]; do
+        printf "${domains[x]}\n"
+        x=$(($x+1))
+    done
+
+}
+
 # UPDATE: Update to the latest version of cf-cli
 cf_update() {
     read -ep "Are you sure you want to update cf-cli? (y/N): " update
@@ -244,6 +283,7 @@ case "$1" in
     cleanup)      cf_cleanup "$@";;
     clear-cache)  cf_clear_cache "$@";;
     init)         cf_init "$@";;
+    list)         cf_list;;
     update)       cf_update;;
     version)      cf_version;;
     *)            error "Illegal command -- $1 (see \"cf --help\" for help)";;
