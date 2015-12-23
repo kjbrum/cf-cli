@@ -29,6 +29,7 @@ Commands:
     cleanup         Remove all config files
     clear-cache
         <domain>    The domain of which to clear the cache
+    help            Display this help text
     init            Initialize necessary config files
     update          Download the latest version of cf
     version         Display the current version
