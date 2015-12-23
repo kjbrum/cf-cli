@@ -50,7 +50,26 @@ The API key associated with your account email. [Find it here](https://www.cloud
 
 ## To-Do
 
+- Add additional commands
+    - `analytics`
+        - `--since|-s` (-<num minutes or absolute timestamp>)
+        - `--until|-u` (-<num minutes or absolute timestamp >)
+        - `--continuous|-c` (true, false)
+    - `dsn`
+        - `--type|-t` (A, AAAA, CNAME, TXT, SRV, LOC, MX, NS, SPF)
+        - `--name|-n` ("example.com")
+        - `--order|-o` (type, name, content, ttl, proxied)
+        - `--direction|-d` (asc, desc)
+    - ~~`list`~~
+        - `--name|-n` ("example.com")
+        - `--status|-s` (active, pending, initializing, moved, deleted, deactivated)
+        - `--order|-o` (name, status, email)
+        - `--direction|-d` (asc, desc)
+    - ~~`clear-cache`~~
+        - `--files|-f` (["http://www.example.com/css/styles.css","http://www.example.com/js/script.js"])
+        - `--tags|-t` (["some-tag","another-tag"])
 - Remove `jsawk` as a dependency
+- Create a function that builds the request URL (base + endpoint + query string) instead of needing different functions for eveything
 
 
 ## License
