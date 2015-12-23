@@ -130,12 +130,15 @@ CloudFlare CLI - v${VERSION}
 A command line tool for communicating with the CloudFlare API.
 
 Usage:
-    cf <task> <options>
+    cf <command> <options>
 
 Commands:
+    cleanup         Remove all config files
     clear-cache
         <domain>    The domain of which to clear the cache
-    list            List all of the available domains
+    init            Initialize necessary config files
+    update          Download the latest version of cf
+    version         Display the current version
 
 EOF
 exit;
