@@ -52,8 +52,8 @@ The API key associated with your account email. [Find it here](https://www.cloud
 
 - Add additional commands
     - `analytics`
-        - `--since|-s` (-<num minutes or absolute timestamp>)
-        - `--until|-u` (-<num minutes or absolute timestamp >)
+        - `--since|-s` (negative num minutes or absolute timestamp)
+        - `--until|-u` (negative num minutes or absolute timestamp)
         - `--continuous|-c` (true, false)
     - `dsn`
         - `--type|-t` (A, AAAA, CNAME, TXT, SRV, LOC, MX, NS, SPF)
