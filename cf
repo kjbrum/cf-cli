@@ -144,6 +144,23 @@ cf_init() {
 
     success "==> Init${WHITE}"
 
+    # Check if Jsawk is installed
+    if [ -z $(which jsawk) ]; then
+        printf "You need to install Jsawk before using this tool.\n\n"
+
+        echo "-----"
+
+        printf "\nHomebrew:\n"
+        printf "brew install jsawk\n\n"
+
+
+        printf "Manual:\n"
+        printf "Download the script.\n"
+        printf "curl -sL http://github.com/micha/jsawk/raw/master/jsawk > jsawk\n\n"
+        printf "Make the script executable and put it somewhere in your path.\n"
+        printf "chmod 755 jsawk && mv jsawk ~/bin/\n\n"
+    fi
+
     # Create directory if it doesn't exist
     if [ ! -d "$CLOUDFLARE_DIR" ]; then
         mkdir $CLOUDFLARE_DIR
